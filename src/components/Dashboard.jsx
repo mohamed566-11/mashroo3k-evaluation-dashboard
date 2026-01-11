@@ -150,7 +150,7 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
                     toast.error('ليس لديك إذن بالوصول إلى أي قسم في النظام');
                     return;
                   }
-                  
+
                   setIsRefreshing(true);
                   try {
                     await onRefresh();
