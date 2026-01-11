@@ -132,16 +132,32 @@ export const AuthProvider = ({ children }) => {
 
     const canAccessOverview = () => {
         const role = getUserRole();
-        return role === 'ADMIN' || role === 'OVERVIEW_VIEWER';
+        // Normalize role to uppercase for comparison (handles 'admin', 'ADMIN', 'Admin', etc.)
+        const normalizedRole = role?.toUpperCase();
+        return normalizedRole === 'ADMIN' || normalizedRole === 'OVERVIEW_VIEWER';
     };
 
     const canAccessEvaluations = () => {
         const role = getUserRole();
-        return role === 'ADMIN' || role === 'EVALUATIONS_VIEWER';
+        // Normalize role to uppercase for comparison
+        const normalizedRole = role?.toUpperCase();
+        return normalizedRole === 'ADMIN' || normalizedRole === 'EVALUATIONS_VIEWER';
     };
 
     const canExportCSV = () => {
-        return getUserRole() === 'ADMIN';
+        const role = getUserRole();
+        // Normalize role to uppercase for comparison
+        const normalizedRole = role?.toUpperCase();
+        // Check if user has ADMIN role
+        if (normalizedRole !== 'ADMIN') {
+            return false;
+        }
+        // Exclude Customer.care@mashroo3k.com from CSV export even if they have ADMIN role
+        // Use case-insensitive comparison to handle any email variations
+        if (user?.email?.toLowerCase() === 'customer.care@mashroo3k.com') {
+            return false;
+        }
+        return true;
     };
 
     const value = {

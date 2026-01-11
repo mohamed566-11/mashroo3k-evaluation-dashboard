@@ -15,75 +15,71 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
   const [activeTab, setActiveTab] = useState('overview')
   const [isExporting, setIsExporting] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const { canExportCSV, getUserRole, signOut } = useAuth();
+  const { canExportCSV, getUserRole, signOut, canAccessOverview: checkCanAccessOverview, canAccessEvaluations: checkCanAccessEvaluations } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const language = 'ar'
 
   // Handle initial tab selection based on user permissions and current route
   useEffect(() => {
-    const role = getUserRole();
     const pathname = location.pathname;
+    const hasOverviewAccess = checkCanAccessOverview();
+    const hasEvaluationsAccess = checkCanAccessEvaluations();
 
-    // Set initial tab based on route and user role
+    // Set initial tab based on route and user permissions
     if (pathname.includes('/overview')) {
-      if (role === 'OVERVIEW_VIEWER' || role === 'ADMIN') {
+      if (hasOverviewAccess) {
         setActiveTab('overview');
       } else {
         toast.error('غير مصرح لك بالوصول إلى صفحة النظرة العامة');
-        if (role === 'EVALUATIONS_VIEWER') {
+        if (hasEvaluationsAccess) {
           navigate('/evaluations', { replace: true });
         }
       }
     } else if (pathname.includes('/evaluations')) {
-      if (role === 'EVALUATIONS_VIEWER' || role === 'ADMIN') {
+      if (hasEvaluationsAccess) {
         setActiveTab('evaluations');
       } else {
         toast.error('غير مصرح لك بالوصول إلى صفحة التقييمات');
-        if (role === 'OVERVIEW_VIEWER') {
+        if (hasOverviewAccess) {
           navigate('/overview', { replace: true });
         }
       }
     } else if (pathname.includes('/dashboard')) {
-      // Default to overview for admin
-      if (role === 'ADMIN') {
+      // Default to overview if user has access, otherwise evaluations
+      if (hasOverviewAccess) {
         setActiveTab('overview');
-      } else if (role === 'EVALUATIONS_VIEWER') {
+      } else if (hasEvaluationsAccess) {
         setActiveTab('evaluations');
         navigate('/evaluations');
-      } else if (role === 'OVERVIEW_VIEWER') {
-        setActiveTab('overview');
-        navigate('/overview');
       }
     } else {
-      // Set initial tab based on user role for root path
-      if (role === 'OVERVIEW_VIEWER') {
+      // Set initial tab based on user permissions for root path
+      if (hasOverviewAccess) {
         setActiveTab('overview');
         navigate('/overview');
-      } else if (role === 'EVALUATIONS_VIEWER') {
+      } else if (hasEvaluationsAccess) {
         setActiveTab('evaluations');
         navigate('/evaluations');
-      } else if (role === 'ADMIN') {
-        setActiveTab('overview');
-        navigate('/dashboard');
       }
     }
-  }, [getUserRole, location.pathname, navigate]);
+  }, [checkCanAccessOverview, checkCanAccessEvaluations, location.pathname, navigate]);
 
   // Check if user has access to current tab
   useEffect(() => {
-    const role = getUserRole();
+    const hasOverviewAccess = checkCanAccessOverview();
+    const hasEvaluationsAccess = checkCanAccessEvaluations();
 
-    if (role === 'OVERVIEW_VIEWER' && activeTab === 'evaluations') {
-      // Redirect to overview if trying to access evaluations as overview viewer
+    if (hasOverviewAccess && !hasEvaluationsAccess && activeTab === 'evaluations') {
+      // Redirect to overview if trying to access evaluations but only have overview access
       setActiveTab('overview');
-      navigate('/evaluations', { replace: true });
-    } else if (role === 'EVALUATIONS_VIEWER' && activeTab === 'overview') {
-      // Redirect to evaluations if trying to access overview as evaluations viewer
-      setActiveTab('evaluations');
       navigate('/overview', { replace: true });
+    } else if (hasEvaluationsAccess && !hasOverviewAccess && activeTab === 'overview') {
+      // Redirect to evaluations if trying to access overview but only have evaluations access
+      setActiveTab('evaluations');
+      navigate('/evaluations', { replace: true });
     }
-  }, [activeTab, getUserRole, navigate]);
+  }, [activeTab, checkCanAccessOverview, checkCanAccessEvaluations, navigate]);
 
   // Redirect user if they don't have access to either section
   useEffect(() => {
@@ -193,7 +189,7 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
           {canAccessOverview && (
             <button
               onClick={() => {
-                if (getUserRole() === 'EVALUATIONS_VIEWER') {
+                if (!checkCanAccessOverview()) {
                   return;
                 }
                 setActiveTab('overview');
@@ -217,7 +213,7 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
           {canAccessEvaluations && (
             <button
               onClick={() => {
-                if (getUserRole() === 'OVERVIEW_VIEWER') {
+                if (!checkCanAccessEvaluations()) {
                   return;
                 }
                 setActiveTab('evaluations');
