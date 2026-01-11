@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext();
@@ -16,6 +17,8 @@ export const AuthProvider = ({ children }) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [authChecked, setAuthChecked] = useState(false);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         // Check initial session
@@ -39,7 +42,7 @@ export const AuthProvider = ({ children }) => {
             if (!session) {
                 // No session found on initial load, redirect to login
                 if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-                    window.location.href = '/login';
+                    navigate('/login');
                 }
             }
             await handleAuthChange(session);
@@ -62,7 +65,7 @@ export const AuthProvider = ({ children }) => {
             setProfile(null);
             // Redirect to login when no session exists
             if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-                window.location.href = '/login';
+                navigate('/login');
             }
         }
     };
@@ -126,7 +129,7 @@ export const AuthProvider = ({ children }) => {
             setProfile(null);
             // Redirect to login after sign out
             if (typeof window !== 'undefined') {
-                window.location.href = '/login';
+                navigate('/login');
             }
         } catch (error) {
             console.error('Sign out error:', error);
@@ -160,9 +163,9 @@ export const AuthProvider = ({ children }) => {
     // Check authentication status on component mount
     useEffect(() => {
         if (authChecked && !isAuthenticated() && typeof window !== 'undefined' && window.location.pathname !== '/login') {
-            window.location.href = '/login';
+            navigate('/login');
         }
-    }, [authChecked, user, profile]);
+    }, [authChecked, user, profile, navigate]);
 
     const value = {
         user,

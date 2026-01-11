@@ -10,7 +10,7 @@ const SignIn = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const { signIn } = useAuth();
+    const { signIn, getUserRole } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -29,7 +29,7 @@ const SignIn = () => {
                     if (role) {
                         redirectToRoleBasedRoute(role);
                     } else {
-                        window.location.href = '/';
+                        navigate('/');
                     }
                 }, 100);
             } else {
@@ -46,16 +46,16 @@ const SignIn = () => {
         if (typeof window !== 'undefined') {
             switch (role) {
                 case 'ADMIN':
-                    window.location.href = '/dashboard';
+                    navigate('/dashboard');
                     break;
                 case 'EVALUATIONS_VIEWER':
-                    window.location.href = '/evaluations';
+                    navigate('/evaluations');
                     break;
                 case 'OVERVIEW_VIEWER':
-                    window.location.href = '/overview';
+                    navigate('/overview');
                     break;
                 default:
-                    window.location.href = '/';
+                    navigate('/');
                     break;
             }
         }
