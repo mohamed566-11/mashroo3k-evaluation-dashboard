@@ -44,22 +44,15 @@ const CustomTooltip = ({ active, payload }) => {
 }
 
 const RatingsChart = memo(({ stats }) => {
-  if (!stats) {
-    return (
-      <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-2 h-8 bg-gradient-to-b from-purple-500 to-pink-600 rounded-full"></div>
-          <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            متوسطات التقييمات
-          </h3>
-        </div>
-        <div className="text-center text-gray-500 dark:text-gray-400 py-16">
-          <div className="text-6xl mb-4">⭐</div>
-          <p className="text-lg">لا توجد بيانات متاحة</p>
-        </div>
-      </div>
-    )
-  }
+  // Don't modify props directly, create local variable
+  const localStats = stats || {
+    averages: {
+      investor_rep: 0,
+      advisory_team: 0,
+      output_quality: 0,
+      website_exp: 0
+    }
+  };
 
   const isDark = document.documentElement.classList.contains('dark')
 
@@ -70,10 +63,10 @@ const RatingsChart = memo(({ stats }) => {
   }
 
   const data = [
-    { name: 'ممثل المستثمر', value: stats.averages.investor_rep},
-    { name: 'الفريق الاستشاري', value: stats.averages.advisory_team },
-    { name: 'جودة المخرجات', value: stats.averages.output_quality },
-    { name: 'تجربة الموقع', value: stats.averages.website_exp }
+    { name: 'ممثل المستثمر', value: localStats.averages?.investor_rep || 0 },
+    { name: 'الفريق الاستشاري', value: localStats.averages?.advisory_team || 0 },
+    { name: 'جودة المخرجات', value: localStats.averages?.output_quality || 0 },
+    { name: 'تجربة الموقع', value: localStats.averages?.website_exp || 0 }
   ]
 
   const getColor = (v) => {

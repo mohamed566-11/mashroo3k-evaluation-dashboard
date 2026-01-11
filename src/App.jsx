@@ -1,40 +1,172 @@
 import { useState, useEffect } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Dashboard from './components/Dashboard'
+import SignIn from './components/SignIn'
 import { CardSkeleton, TableSkeleton, ChartSkeleton } from './components/LoadingSkeleton'
-import { getEvaluations, getEvaluationsStats, getEvaluationsByDate, getReasonsDistribution } from './lib/supabase'
+import { getEvaluations, getEvaluationsStats, getEvaluationsByDate, getReasonsDistribution, getOverviewStats, getOverviewByDate, getOverviewReasons } from './lib/supabase'
 import toast from 'react-hot-toast'
 
-function App() {
+function AppWrapper() {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <AppRoutes />
+      </ThemeProvider>
+    </AuthProvider>
+  );
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<PublicRoute><SignIn /></PublicRoute>} />
+      <Route path="/" element={<ProtectedRoute><DashboardWrapper /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardWrapper /></ProtectedRoute>} />
+      <Route path="/evaluations" element={<ProtectedRoute><DashboardWrapper /></ProtectedRoute>} />
+      <Route path="/overview" element={<ProtectedRoute><DashboardWrapper /></ProtectedRoute>} />
+    </Routes>
+  );
+}
+
+function PublicRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary-600 border-t-transparent mx-auto"></div>
+          <p className="text-gray-600 dark:text-gray-400 mt-4">جاري التحقق من الحالة...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading, authChecked } = useAuth();
+
+  if (loading || !authChecked) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary-600 border-t-transparent mx-auto"></div>
+          <p className="text-gray-600 dark:text-gray-400 mt-4">جاري التحقق من الحالة...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function DashboardWrapper() {
   const [evaluations, setEvaluations] = useState([])
   const [stats, setStats] = useState(null)
   const [dateData, setDateData] = useState([])
   const [reasonsData, setReasonsData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const { canAccessOverview, canAccessEvaluations, getUserRole, authChecked } = useAuth();
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (authChecked && getUserRole()) {
+      loadData();
+    }
+  }, [authChecked]);
 
   const loadData = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const [evaluationsData, statsData, dateDataResult, reasonsDataResult] = await Promise.all([
-        getEvaluations(),
-        getEvaluationsStats(),
-        getEvaluationsByDate(),
-        getReasonsDistribution()
-      ])
+      // Role-aware data fetching
+      const promises = [];
 
-      setEvaluations(evaluationsData)
-      setStats(statsData)
-      setDateData(dateDataResult)
-      setReasonsData(reasonsDataResult)
+      // Only fetch evaluations if user can access them
+      if (canAccessEvaluations()) {
+        console.log('FETCHING EVALUATIONS FOR EVALUATIONS ACCESS'); // Debug log
+        promises.push(getEvaluations());
+      } else {
+        console.log('NOT FETCHING EVALUATIONS - NO ACCESS'); // Debug log
+        promises.push(Promise.resolve([])); // Return empty array
+      }
 
+      // Only fetch overview stats if user can access them
+      if (canAccessOverview()) {
+        const userRole = getUserRole();
+        console.log('ROLE:', userRole); // Debug log
+
+        if (userRole === 'OVERVIEW_VIEWER') {
+          // OVERVIEW_VIEWER uses RPC functions
+          console.log('FETCHING OVERVIEW DATA FOR OVERVIEW_VIEWER'); // Debug log
+          promises.push(
+            Promise.all([
+              getOverviewStats(),
+              getOverviewByDate(),
+              getOverviewReasons()
+            ]).then(([statsData, dateDataResult, reasonsDataResult]) => {
+              console.log('RPC STATS RAW:', statsData); // Debug log
+              console.log('RPC DATE RAW:', dateDataResult); // Debug log
+              console.log('RPC REASONS RAW:', reasonsDataResult); // Debug log
+
+              return {
+                stats: statsData,
+                dateData: dateDataResult,
+                reasonsData: reasonsDataResult
+              };
+            })
+          );
+        } else {
+          // ADMIN and other roles use direct table access
+          console.log('FETCHING EVALUATIONS DATA FOR OTHER ROLE'); // Debug log
+          promises.push(
+            Promise.all([
+              getEvaluationsStats(),
+              getEvaluationsByDate(),
+              getReasonsDistribution()
+            ]).then(([statsData, dateDataResult, reasonsDataResult]) => {
+              console.log('EVALUATIONS STATS RAW:', statsData); // Debug log
+              return {
+                stats: statsData,
+                dateData: dateDataResult,
+                reasonsData: reasonsDataResult
+              };
+            })
+          );
+        }
+      } else {
+        console.log('NO ACCESS TO OVERVIEW'); // Debug log
+        promises.push(Promise.resolve({
+          stats: null,
+          dateData: [],
+          reasonsData: []
+        })); // Return empty data
+      }
+
+      console.log('ALL PROMISES RESOLVED, RESULTS:', promises.length); // Debug log
+      const [evaluationsData, overviewData] = await Promise.all(promises);
+      console.log('FINAL DATA SET - evaluationsData:', evaluationsData.length, 'overviewData:', overviewData); // Debug log
+
+      setEvaluations(evaluationsData);
+      setStats(overviewData.stats);
+      setDateData(overviewData.dateData);
+      setReasonsData(overviewData.reasonsData);
+
+      console.log('STATES SET - stats:', overviewData.stats); // Debug log
       toast.success('تم تحميل البيانات بنجاح')
     } catch (err) {
       console.error('Error loading data:', err)
@@ -47,42 +179,38 @@ function App() {
 
   if (loading) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-          <div className="text-center w-full max-w-7xl">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary-600 border-t-transparent mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">جاري تحميل البيانات...</p>
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map(i => <CardSkeleton key={i} />)}
-            </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="text-center w-full max-w-7xl">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-lg">جاري تحميل البيانات...</p>
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => <CardSkeleton key={i} />)}
           </div>
         </div>
-      </ThemeProvider>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-          <div className="text-center bg-white dark:bg-gray-800 p-8 rounded-xl border border-red-200 dark:border-red-800 max-w-md shadow-lg">
-            <h2 className="text-red-600 dark:text-red-400 text-xl font-bold mb-2">حدث خطأ</h2>
-            <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
-            <button
-              onClick={loadData}
-              className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-              aria-label="إعادة المحاولة"
-            >
-              إعادة المحاولة
-            </button>
-          </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="text-center bg-white dark:bg-gray-800 p-8 rounded-xl border border-red-200 dark:border-red-800 max-w-md shadow-lg">
+          <h2 className="text-red-600 dark:text-red-400 text-xl font-bold mb-2">حدث خطأ</h2>
+          <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
+          <button
+            onClick={loadData}
+            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            aria-label="إعادة المحاولة"
+          >
+            إعادة المحاولة
+          </button>
         </div>
-      </ThemeProvider>
+      </div>
     )
   }
 
   return (
-    <ThemeProvider>
+    <>
       <Toaster
         position="top-center"
         toastOptions={{
@@ -111,10 +239,11 @@ function App() {
         dateData={dateData}
         reasonsData={reasonsData}
         onRefresh={loadData}
+        canAccessOverview={canAccessOverview()}
+        canAccessEvaluations={canAccessEvaluations()}
       />
-    </ThemeProvider>
+    </>
   )
 }
 
-export default App
-
+export default AppWrapper;

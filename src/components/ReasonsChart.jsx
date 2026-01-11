@@ -29,22 +29,8 @@ const CustomTooltip = ({ active, payload }) => {
 }
 
 const ReasonsChart = memo(({ reasonsData }) => {
-  if (!reasonsData || reasonsData.length === 0) {
-    return (
-      <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></div>
-          <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            توزيع أسباب اختيار الشركة
-          </h3>
-        </div>
-        <div className="text-center text-gray-500 dark:text-gray-400 py-16">
-          <div className="text-6xl mb-4">📊</div>
-          <p className="text-lg">لا توجد بيانات متاحة</p>
-        </div>
-      </div>
-    )
-  }
+  // Don't modify props directly, create local variable
+  const localReasonsData = reasonsData || [];
 
   const isDark = document.documentElement.classList.contains('dark')
   const colors = {
@@ -53,8 +39,8 @@ const ReasonsChart = memo(({ reasonsData }) => {
     bg: isDark ? '#1f2937' : '#ffffff'
   }
 
-  const sortedData = [...reasonsData].sort((a, b) => b.value - a.value)
-  const maxValue = Math.max(...sortedData.map(d => d.value))
+  const sortedData = localReasonsData && localReasonsData.length > 0 ? [...localReasonsData].sort((a, b) => (b?.value || 0) - (a?.value || 0)) : []
+  const maxValue = sortedData && sortedData.length > 0 ? Math.max(...sortedData.map(d => d?.value || 0)) : 0
   const chartHeight = Math.max(500, sortedData.length * 85)
 
   return (
@@ -70,25 +56,25 @@ const ReasonsChart = memo(({ reasonsData }) => {
         <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/30 dark:to-indigo-800/20 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-700">
           <p className="text-sm text-indigo-600 dark:text-indigo-400 mb-1">إجمالي الردود</p>
           <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
-            {sortedData.reduce((sum, d) => sum + d.value, 0)}
+            {(sortedData || []).reduce((sum, d) => sum + (d?.value || 0), 0)}
           </p>
         </div>
         <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 rounded-2xl p-4 border border-purple-200 dark:border-purple-700">
           <p className="text-sm text-purple-600 dark:text-purple-400 mb-1">عدد الأسباب</p>
           <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-            {sortedData.length}
+            {sortedData?.length || 0}
           </p>
         </div>
         <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/30 dark:to-pink-800/20 rounded-2xl p-4 border border-pink-200 dark:border-pink-700">
           <p className="text-sm text-pink-600 dark:text-pink-400 mb-1">الأكثر شيوعاً</p>
           <p className="text-2xl font-bold text-pink-700 dark:text-pink-300">
-            {sortedData[0]?.value || 0}
+            {(sortedData[0]?.value || 0)}
           </p>
         </div>
         <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/20 rounded-2xl p-4 border border-amber-200 dark:border-amber-700">
           <p className="text-sm text-amber-600 dark:text-amber-400 mb-1">متوسط</p>
           <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-            {Math.round(sortedData.reduce((sum, d) => sum + d.value, 0) / sortedData.length)}
+            {sortedData && sortedData.length > 0 ? Math.round((sortedData.reduce((sum, d) => sum + (d?.value || 0), 0) || 0) / sortedData.length) || 0 : 0}
           </p>
         </div>
       </div>

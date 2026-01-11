@@ -1,6 +1,12 @@
 import { translateReason } from './translations'
 
-export const exportToCSV = (data, filename = 'evaluations') => {
+export const exportToCSV = (data, filename = 'evaluations', userRole = null) => {
+  // Check if user has permission to export (admin only)
+  if (userRole && userRole !== 'ADMIN') {
+    console.error('Export permission denied: Only ADMIN users can export data');
+    return;
+  }
+
   if (!data || data.length === 0) {
     return
   }

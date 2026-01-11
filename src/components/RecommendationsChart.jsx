@@ -72,27 +72,15 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, valu
 
 const RecommendationsChart = memo(({ recommendationsData }) => {
     if (!recommendationsData || recommendationsData.length === 0) {
-        return (
-            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="w-2 h-8 bg-gradient-to-b from-emerald-500 to-green-600 rounded-full"></div>
-                    <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                        توزيع التوصيات
-                    </h3>
-                </div>
-                <div className="text-center text-gray-500 dark:text-gray-400 py-16">
-                    <div className="text-6xl mb-4">👍</div>
-                    <p className="text-lg">لا توجد بيانات متاحة</p>
-                </div>
-            </div>
-        );
+        // Provide default data to prevent errors
+        recommendationsData = [];
     }
 
     const isDark = document.documentElement.classList.contains('dark');
     const textColor = isDark ? '#e5e7eb' : '#374151';
 
-    const total = recommendationsData.reduce((sum, item) => sum + item.value, 0);
-    const dataWithTotal = recommendationsData.map(item => ({ ...item, total }));
+    const total = recommendationsData?.reduce((sum, item) => sum + (item?.value || 0), 0) || 0;
+    const dataWithTotal = recommendationsData?.map(item => ({ ...item, total })) || [];
 
     const yesData = recommendationsData.find(d => d.name === 'نعم' || d.name.includes('نعم'));
     const noData = recommendationsData.find(d => d.name === 'لا' || d.name.includes('لا'));

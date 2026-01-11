@@ -2,7 +2,20 @@ import { memo } from 'react'
 import { Users, Star, ThumbsUp, TrendingUp } from 'lucide-react'
 
 const StatsCards = memo(({ stats }) => {
-  if (!stats) return null
+  if (!stats) {
+    // Provide default stats object to prevent errors
+    stats = {
+      total: 0,
+      averages: {
+        investor_rep: 0,
+        advisory_team: 0,
+        output_quality: 0,
+        website_exp: 0
+      },
+      recommendRate: 0,
+      recentCount: 0
+    };
+  }
 
   const cards = [
     {
@@ -17,7 +30,7 @@ const StatsCards = memo(({ stats }) => {
     {
       title: 'متوسط التقييم العام',
       value: (
-        Object.values(stats.averages).reduce((sum, avg) => sum + avg, 0) / 4
+        Object.values(stats.averages || {}).reduce((sum, avg) => sum + (avg || 0), 0) / Math.max(Object.keys(stats.averages || {}).length, 1)
       ).toFixed(2),
       icon: Star,
       color: 'bg-yellow-500 dark:bg-yellow-600',
@@ -27,16 +40,16 @@ const StatsCards = memo(({ stats }) => {
     },
     {
       title: 'معدل التوصية',
-      value: `${stats.recommendRate.toFixed(1)}%`,
+      value: `${(stats.recommendRate || 0).toFixed(1)}%`,
       icon: ThumbsUp,
       color: 'bg-green-500 dark:bg-green-600',
       bgGradient: 'from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20',
-      change: `${((stats.recommendRate / 100) * stats.total).toFixed(0)} عميل`,
+      change: `${(((stats.recommendRate || 0) / 100) * (stats.total || 0)).toFixed(0)} عميل`,
       trend: stats.recommendRate > 70 ? 'up' : stats.recommendRate > 50 ? 'neutral' : 'down'
     },
     {
       title: 'متوسط تقييم الموقع',
-      value: stats.averages.website_exp.toFixed(2),
+      value: (stats.averages?.website_exp || 0).toFixed(2),
       icon: TrendingUp,
       color: 'bg-purple-500 dark:bg-purple-600',
       bgGradient: 'from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20',

@@ -4,12 +4,15 @@ import { format } from 'date-fns'
 import { translateReason } from '../utils/translations'
 
 const EvaluationsTable = memo(({ evaluations, onRefresh }) => {
+  // Handle undefined evaluations data
+  const safeEvaluations = evaluations || []
+
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState('desc')
 
   const filteredEvaluations = useMemo(() => {
-    return evaluations
+    return safeEvaluations
       .filter(evaluation => {
         const search = searchTerm.toLowerCase()
         return (
@@ -21,8 +24,8 @@ const EvaluationsTable = memo(({ evaluations, onRefresh }) => {
         )
       })
       .sort((a, b) => {
-        let aVal = a[sortBy]
-        let bVal = b[sortBy]
+        let aVal = a?.[sortBy]
+        let bVal = b?.[sortBy]
 
         if (sortBy === 'created_at') {
           aVal = new Date(aVal)
@@ -35,7 +38,7 @@ const EvaluationsTable = memo(({ evaluations, onRefresh }) => {
           return aVal < bVal ? 1 : -1
         }
       })
-  }, [evaluations, searchTerm, sortBy, sortOrder])
+  }, [safeEvaluations, searchTerm, sortBy, sortOrder])
 
   const handleSort = (field) => {
     if (sortBy === field) {
@@ -210,7 +213,7 @@ const EvaluationsTable = memo(({ evaluations, onRefresh }) => {
       {/* Summary */}
       <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          عرض {filteredEvaluations.length} من {evaluations.length} تقييم
+          عرض {filteredEvaluations.length} من {safeEvaluations.length} تقييم
         </p>
       </div>
     </div>
