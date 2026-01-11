@@ -1,6 +1,7 @@
 import { useState, memo, useMemo } from 'react'
 import { Star, Download, Search } from 'lucide-react'
 import { format } from 'date-fns'
+import { translateReason } from '../utils/translations'
 
 const EvaluationsTable = memo(({ evaluations }) => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -15,7 +16,8 @@ const EvaluationsTable = memo(({ evaluations }) => {
           evaluation.name?.toLowerCase().includes(search) ||
           evaluation.email?.toLowerCase().includes(search) ||
           evaluation.phone?.includes(search) ||
-          evaluation.reason?.toLowerCase().includes(search)
+          evaluation.reason?.toLowerCase().includes(search) ||
+          translateReason(evaluation.reason, 'ar')?.toLowerCase().includes(search)
         )
       })
       .sort((a, b) => {
@@ -172,8 +174,8 @@ const EvaluationsTable = memo(({ evaluations }) => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    <div className="max-w-xs truncate" title={evaluation.reason}>
-                      {evaluation.reason}
+                    <div className="max-w-xs truncate" title={translateReason(evaluation.reason, 'ar')}>
+                      {translateReason(evaluation.reason, 'ar')}
                       {evaluation.other_reason && ` - ${evaluation.other_reason}`}
                     </div>
                   </td>

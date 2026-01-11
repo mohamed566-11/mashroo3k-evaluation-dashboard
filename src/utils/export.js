@@ -1,3 +1,5 @@
+import { translateReason } from './translations'
+
 export const exportToCSV = (data, filename = 'evaluations') => {
   if (!data || data.length === 0) {
     return
@@ -28,7 +30,7 @@ export const exportToCSV = (data, filename = 'evaluations') => {
     item.output_quality_rating || '',
     item.website_exp_rating || '',
     item.will_recommend ? 'نعم' : 'لا',
-    item.reason || '',
+    translateReason(item.reason, 'ar') || '',
     item.other_reason || '',
     new Date(item.created_at).toLocaleDateString('ar-EG')
   ])

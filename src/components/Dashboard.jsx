@@ -2,8 +2,8 @@ import { useState, memo } from 'react'
 import { BarChart3, Users, RefreshCw, Download, FileSpreadsheet } from 'lucide-react'
 import StatsCards from './StatsCards'
 import RatingsChart from './RatingsChart'
-import TrendsChart from './TrendsChart'
 import ReasonsChart from './ReasonsChart'
+import RecommendationsChart from './RecommendationsChart'
 import EvaluationsTable from './EvaluationsTable'
 import ThemeToggle from './ThemeToggle'
 import { exportToCSV } from '../utils/export'
@@ -12,6 +12,7 @@ import toast from 'react-hot-toast'
 const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh }) => {
   const [activeTab, setActiveTab] = useState('overview')
   const [isExporting, setIsExporting] = useState(false)
+  const language = 'ar'
 
   const handleExportCSV = async () => {
     try {
@@ -120,7 +121,7 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh }
               <ReasonsChart reasonsData={reasonsData} />
             </div>
 
-            <TrendsChart dateData={dateData} />
+            <RecommendationsChart recommendationsData={stats?.recommendationDistribution || []} />
           </div>
         )}
 

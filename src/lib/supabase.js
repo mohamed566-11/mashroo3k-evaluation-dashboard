@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { translateReason } from '../utils/translations'
 
 // TODO: استبدل هذه القيم بقيم Supabase الخاصة بك
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL'
@@ -12,7 +13,7 @@ export const getEvaluations = async () => {
     .from('evaluations')
     .select('*')
     .order('created_at', { ascending: false })
-  
+
   if (error) throw error
   return data
 }
@@ -21,9 +22,9 @@ export const getEvaluationsStats = async () => {
   const { data, error } = await supabase
     .from('evaluations')
     .select('*')
-  
+
   if (error) throw error
-  
+
   if (!data || data.length === 0) {
     return {
       total: 0,
@@ -37,7 +38,7 @@ export const getEvaluationsStats = async () => {
       recentCount: 0
     }
   }
-  
+
   const total = data.length
   const averages = {
     investor_rep: data.reduce((sum, e) => sum + e.investor_rep_rating, 0) / total,
@@ -45,20 +46,30 @@ export const getEvaluationsStats = async () => {
     output_quality: data.reduce((sum, e) => sum + e.output_quality_rating, 0) / total,
     website_exp: data.reduce((sum, e) => sum + e.website_exp_rating, 0) / total
   }
-  
+
   const recommendCount = data.filter(e => e.will_recommend).length
   const recommendRate = (recommendCount / total) * 100
-  
+
   // آخر 7 أيام
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
   const recentCount = data.filter(e => new Date(e.created_at) >= sevenDaysAgo).length
-  
+
+  // Get recommendation distribution
+  const yesCount = data.filter(e => e.will_recommend).length;
+  const noCount = data.filter(e => !e.will_recommend).length;
+
+  const recommendationDistribution = [
+    { name: 'نعم', value: yesCount },
+    { name: 'لا', value: noCount }
+  ];
+
   return {
     total,
     averages,
     recommendRate,
-    recentCount
+    recentCount,
+    recommendationDistribution
   }
 }
 
@@ -67,7 +78,7 @@ export const getEvaluationsByDate = async () => {
     .from('evaluations')
     .select('created_at, investor_rep_rating, advisory_team_rating, output_quality_rating, website_exp_rating')
     .order('created_at', { ascending: true })
-  
+
   if (error) throw error
   return data
 }
@@ -76,17 +87,34 @@ export const getReasonsDistribution = async () => {
   const { data, error } = await supabase
     .from('evaluations')
     .select('reason, other_reason')
-  
+
   if (error) throw error
-  
+
   const distribution = {}
   data.forEach(e => {
     const reason = e.reason === 'أخرى' && e.other_reason ? e.other_reason : e.reason
-    distribution[reason] = (distribution[reason] || 0) + 1
+    const translatedReason = translateReason(reason, 'ar')
+    distribution[translatedReason] = (distribution[translatedReason] || 0) + 1
   })
-  
+
   return Object.entries(distribution)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value)
 }
+
+// Function to save evaluation with automatic translation of reason to Arabic
+export const saveEvaluation = async (evaluationData) => {
+  // Translate the reason to Arabic before saving
+  const translatedData = {
+    ...evaluationData,
+    reason: translateReason(evaluationData.reason, 'ar')
+  };
+
+  const { data, error } = await supabase
+    .from('evaluations')
+    .insert(translatedData);
+
+  if (error) throw error;
+  return data;
+};
 

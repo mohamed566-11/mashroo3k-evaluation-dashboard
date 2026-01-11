@@ -22,19 +22,19 @@ function App() {
     try {
       setLoading(true)
       setError(null)
-      
+
       const [evaluationsData, statsData, dateDataResult, reasonsDataResult] = await Promise.all([
         getEvaluations(),
         getEvaluationsStats(),
         getEvaluationsByDate(),
         getReasonsDistribution()
       ])
-      
+
       setEvaluations(evaluationsData)
       setStats(statsData)
       setDateData(dateDataResult)
       setReasonsData(reasonsDataResult)
-      
+
       toast.success('تم تحميل البيانات بنجاح')
     } catch (err) {
       console.error('Error loading data:', err)
@@ -68,7 +68,7 @@ function App() {
           <div className="text-center bg-white dark:bg-gray-800 p-8 rounded-xl border border-red-200 dark:border-red-800 max-w-md shadow-lg">
             <h2 className="text-red-600 dark:text-red-400 text-xl font-bold mb-2">حدث خطأ</h2>
             <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
-            <button 
+            <button
               onClick={loadData}
               className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               aria-label="إعادة المحاولة"
@@ -105,7 +105,7 @@ function App() {
           },
         }}
       />
-      <Dashboard 
+      <Dashboard
         evaluations={evaluations}
         stats={stats}
         dateData={dateData}
