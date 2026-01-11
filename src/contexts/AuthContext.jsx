@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext();
@@ -15,16 +14,14 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false); // Only for actual operations, not initial check
     const [authChecked, setAuthChecked] = useState(false);
-
-    const navigate = useNavigate();
 
     useEffect(() => {
         // Check initial session
         checkInitialSession();
 
-        // Listen for auth changes
+        // Listen for auth changes - this is the SINGLE SOURCE OF TRUTH
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (_event, session) => {
                 handleAuthChange(session);
@@ -39,35 +36,33 @@ export const AuthProvider = ({ children }) => {
     const checkInitialSession = async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                // No session found on initial load, redirect to login
-                if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-                    navigate('/login');
-                }
+
+            if (session) {
+                // If there's a session, handleAuthChange will be called by onAuthStateChange
+                // So we don't need to do anything here
+            } else {
+                // No session, set authChecked to true
+                setAuthChecked(true);
             }
-            await handleAuthChange(session);
         } catch (error) {
             console.error('Error checking initial session:', error);
-        } finally {
-            setLoading(false);
             setAuthChecked(true);
         }
     };
 
+    // This is the ONLY place where profile is fetched and set
     const handleAuthChange = async (session) => {
         if (session) {
             setUser(session.user);
-            // Fetch user profile
+            // Fetch user profile - SINGLE SOURCE OF TRUTH
             const profileData = await fetchUserProfile(session.user.id);
             setProfile(profileData);
         } else {
             setUser(null);
             setProfile(null);
-            // Redirect to login when no session exists
-            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-                navigate('/login');
-            }
         }
+        // authChecked is true when we have processed the auth state
+        setAuthChecked(true);
     };
 
     const fetchUserProfile = async (userId) => {
@@ -102,14 +97,8 @@ export const AuthProvider = ({ children }) => {
                 throw error;
             }
 
-            const { user: userData } = data;
-            setUser(userData);
-
-            // Fetch user profile
-            const profileData = await fetchUserProfile(userData.id);
-            setProfile(profileData);
-
-            return { success: true, data, profile: profileData };
+            // DO NOT fetch profile here - onAuthStateChange will handle it
+            return { success: true, data };
         } catch (error) {
             console.error('Sign in error:', error);
             return { success: false, error: error.message };
@@ -125,12 +114,7 @@ export const AuthProvider = ({ children }) => {
             if (error) {
                 console.error('Sign out error:', error);
             }
-            setUser(null);
-            setProfile(null);
-            // Redirect to login after sign out
-            if (typeof window !== 'undefined') {
-                navigate('/login');
-            }
+            // DO NOT set state here - onAuthStateChange will handle it
         } catch (error) {
             console.error('Sign out error:', error);
         } finally {
@@ -159,13 +143,6 @@ export const AuthProvider = ({ children }) => {
     const canExportCSV = () => {
         return getUserRole() === 'ADMIN';
     };
-
-    // Check authentication status on component mount
-    useEffect(() => {
-        if (authChecked && !isAuthenticated() && typeof window !== 'undefined' && window.location.pathname !== '/login') {
-            navigate('/login');
-        }
-    }, [authChecked, user, profile, navigate]);
 
     const value = {
         user,

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const SignIn = () => {
     const [email, setEmail] = useState('');
@@ -10,7 +11,7 @@ const SignIn = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const { signIn, getUserRole } = useAuth();
+    const { signIn, getUserRole, profile, authChecked } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -22,18 +23,21 @@ const SignIn = () => {
             const result = await signIn(email, password);
 
             if (result.success) {
-                // Wait for the profile to be loaded in the context
-                // Then redirect based on user role
-                setTimeout(() => {
-                    const role = result.profile?.role;
-                    if (role) {
-                        redirectToRoleBasedRoute(role);
-                    } else {
-                        navigate('/');
-                    }
-                }, 100);
+                // DO NOT redirect here - let the auth state changes handle it
+                // After sign in, onAuthStateChange will update the auth state
+                // and the ProtectedRoute will handle navigation
             } else {
-                setError(result.error);
+                // Show toast notification for incorrect credentials
+                const errorMessage = result.error.toLowerCase().includes('invalid') ||
+                    result.error.toLowerCase().includes('wrong') ||
+                    result.error.toLowerCase().includes('credentials') ||
+                    result.error.toLowerCase().includes('email') ||
+                    result.error.toLowerCase().includes('password') ?
+                    'البريد الإلكتروني أو كلمة المرور غير صحيحة' :
+                    result.error;
+
+                setError(errorMessage);
+                toast.error('البريد الإلكتروني أو كلمة المرور غير صحيحة');
             }
         } catch (err) {
             setError(err.message || 'حدث خطأ أثناء تسجيل الدخول');
@@ -42,20 +46,31 @@ const SignIn = () => {
         }
     };
 
+    // Effect to handle redirect after auth state is updated
+    useEffect(() => {
+        // Only redirect if auth is checked and user is authenticated
+        if (authChecked && profile) {
+            const role = getUserRole();
+            if (role) {
+                redirectToRoleBasedRoute(role);
+            }
+        }
+    }, [authChecked, profile, getUserRole, navigate]);
+
     const redirectToRoleBasedRoute = (role) => {
         if (typeof window !== 'undefined') {
             switch (role) {
                 case 'ADMIN':
-                    navigate('/dashboard');
+                    navigate('/dashboard', { replace: true });
                     break;
                 case 'EVALUATIONS_VIEWER':
-                    navigate('/evaluations');
+                    navigate('/evaluations', { replace: true });
                     break;
                 case 'OVERVIEW_VIEWER':
-                    navigate('/overview');
+                    navigate('/overview', { replace: true });
                     break;
                 default:
-                    navigate('/');
+                    navigate('/', { replace: true });
                     break;
             }
         }

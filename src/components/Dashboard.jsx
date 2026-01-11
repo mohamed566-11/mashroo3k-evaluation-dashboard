@@ -14,6 +14,7 @@ import toast from 'react-hot-toast'
 const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, canAccessOverview, canAccessEvaluations }) => {
   const [activeTab, setActiveTab] = useState('overview')
   const [isExporting, setIsExporting] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const { canExportCSV, getUserRole, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,7 +32,7 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
       } else {
         toast.error('غير مصرح لك بالوصول إلى صفحة النظرة العامة');
         if (role === 'EVALUATIONS_VIEWER') {
-          navigate('/evaluations');
+          navigate('/evaluations', { replace: true });
         }
       }
     } else if (pathname.includes('/evaluations')) {
@@ -40,7 +41,7 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
       } else {
         toast.error('غير مصرح لك بالوصول إلى صفحة التقييمات');
         if (role === 'OVERVIEW_VIEWER') {
-          navigate('/overview');
+          navigate('/overview', { replace: true });
         }
       }
     } else if (pathname.includes('/dashboard')) {
@@ -76,13 +77,11 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
     if (role === 'OVERVIEW_VIEWER' && activeTab === 'evaluations') {
       // Redirect to overview if trying to access evaluations as overview viewer
       setActiveTab('overview');
-      navigate('/overview');
-      toast.error('غير مصرح لك بالوصول إلى صفحة التقييمات');
+      navigate('/evaluations', { replace: true });
     } else if (role === 'EVALUATIONS_VIEWER' && activeTab === 'overview') {
       // Redirect to evaluations if trying to access overview as evaluations viewer
       setActiveTab('evaluations');
-      navigate('/evaluations');
-      toast.error('غير مصرح لك بالوصول إلى صفحة النظرة العامة');
+      navigate('/overview', { replace: true });
     }
   }, [activeTab, getUserRole, navigate]);
 
@@ -145,12 +144,23 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
                 )}
               </div>
               <button
-                onClick={onRefresh}
-                className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  try {
+                    await onRefresh();
+                    toast.success('تم تحديث البيانات بنجاح');
+                  } catch (error) {
+                    toast.error('حدث خطأ أثناء تحديث البيانات');
+                  } finally {
+                    setIsRefreshing(false);
+                  }
+                }}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-70 disabled:cursor-not-allowed"
                 aria-label="تحديث البيانات"
               >
-                <RefreshCw className="w-4 h-4" />
-                <span className="hidden sm:inline">تحديث</span>
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{isRefreshing ? 'جاري التحديث...' : 'تحديث'}</span>
               </button>
               <button
                 onClick={() => {
@@ -179,7 +189,6 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
             <button
               onClick={() => {
                 if (getUserRole() === 'EVALUATIONS_VIEWER') {
-                  toast.error('غير مصرح لك بالوصول إلى صفحة النظرة العامة');
                   return;
                 }
                 setActiveTab('overview');
@@ -204,7 +213,6 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
             <button
               onClick={() => {
                 if (getUserRole() === 'OVERVIEW_VIEWER') {
-                  toast.error('غير مصرح لك بالوصول إلى صفحة التقييمات');
                   return;
                 }
                 setActiveTab('evaluations');

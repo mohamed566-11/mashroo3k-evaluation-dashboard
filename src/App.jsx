@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -32,9 +32,10 @@ function AppRoutes() {
 }
 
 function PublicRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, authChecked } = useAuth();
 
-  if (loading) {
+  // Show loading state while checking auth status
+  if (!authChecked) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
         <div className="text-center">
@@ -45,6 +46,7 @@ function PublicRoute({ children }) {
     );
   }
 
+  // If authenticated, redirect to dashboard
   if (isAuthenticated()) {
     return <Navigate to="/" replace />;
   }
@@ -53,9 +55,10 @@ function PublicRoute({ children }) {
 }
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading, authChecked } = useAuth();
+  const { isAuthenticated, authChecked } = useAuth();
 
-  if (loading || !authChecked) {
+  // Show loading state while checking auth status
+  if (!authChecked) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
         <div className="text-center">
@@ -66,6 +69,7 @@ function ProtectedRoute({ children }) {
     );
   }
 
+  // If not authenticated, redirect to login
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
@@ -80,13 +84,16 @@ function DashboardWrapper() {
   const [reasonsData, setReasonsData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const dataLoadInitiated = useRef(false);
   const { canAccessOverview, canAccessEvaluations, getUserRole, authChecked } = useAuth();
 
   useEffect(() => {
-    if (authChecked && getUserRole()) {
+    if (authChecked && getUserRole() && !dataLoaded && !dataLoadInitiated.current) {
+      dataLoadInitiated.current = true;
       loadData();
     }
-  }, [authChecked]);
+  }, [authChecked, getUserRole, dataLoaded]);
 
   const loadData = async () => {
     try {
@@ -167,7 +174,10 @@ function DashboardWrapper() {
       setReasonsData(overviewData.reasonsData);
 
       console.log('STATES SET - stats:', overviewData.stats); // Debug log
-      toast.success('تم تحميل البيانات بنجاح')
+      if (!dataLoaded) {
+        toast.success('تم تحميل البيانات بنجاح')
+        setDataLoaded(true);
+      }
     } catch (err) {
       console.error('Error loading data:', err)
       setError(err.message)
@@ -177,7 +187,7 @@ function DashboardWrapper() {
     }
   }
 
-  if (loading) {
+  if (loading && !dataLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
         <div className="text-center w-full max-w-7xl">
