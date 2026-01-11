@@ -145,22 +145,27 @@ const Dashboard = memo(({ evaluations, stats, dateData, reasonsData, onRefresh, 
               </div>
               <button
                 onClick={async () => {
+                  // Check if user has access before attempting refresh
+                  if (!canAccessOverview && !canAccessEvaluations) {
+                    toast.error('ليس لديك إذن بالوصول إلى أي قسم في النظام');
+                    return;
+                  }
+                  
                   setIsRefreshing(true);
                   try {
                     await onRefresh();
-                    toast.success('تم تحديث البيانات بنجاح');
                   } catch (error) {
                     toast.error('حدث خطأ أثناء تحديث البيانات');
                   } finally {
                     setIsRefreshing(false);
                   }
                 }}
-                disabled={isRefreshing}
+                disabled={isRefreshing || (!canAccessOverview && !canAccessEvaluations)}
                 className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-70 disabled:cursor-not-allowed"
                 aria-label="تحديث البيانات"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{isRefreshing ? 'جاري التحديث...' : 'تحديث'}</span>
+                <span className="hidden sm:inline">{isRefreshing ? 'جاري التحديث...' : (!canAccessOverview && !canAccessEvaluations) ? 'لا يوجد إذن' : 'تحديث'}</span>
               </button>
               <button
                 onClick={() => {

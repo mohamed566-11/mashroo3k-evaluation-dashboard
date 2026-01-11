@@ -97,7 +97,10 @@ function DashboardWrapper() {
 
   const loadData = async () => {
     try {
-      setLoading(true)
+      // Only show full loading state on initial load, not on refresh
+      if (!dataLoaded) {
+        setLoading(true);
+      }
       setError(null)
 
       // Role-aware data fetching
@@ -177,6 +180,9 @@ function DashboardWrapper() {
       if (!dataLoaded) {
         toast.success('تم تحميل البيانات بنجاح')
         setDataLoaded(true);
+      } else {
+        // Show success toast on refresh
+        toast.success('تم تحديث البيانات بنجاح');
       }
     } catch (err) {
       console.error('Error loading data:', err)
