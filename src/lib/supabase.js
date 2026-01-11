@@ -118,3 +118,13 @@ export const saveEvaluation = async (evaluationData) => {
   return data;
 };
 
+// Function to delete an evaluation
+export const deleteEvaluation = async (id) => {
+  const { error } = await supabase
+    .from('evaluations')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+};
+

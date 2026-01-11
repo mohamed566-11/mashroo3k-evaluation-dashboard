@@ -3,7 +3,7 @@ import { Star, Download, Search } from 'lucide-react'
 import { format } from 'date-fns'
 import { translateReason } from '../utils/translations'
 
-const EvaluationsTable = memo(({ evaluations }) => {
+const EvaluationsTable = memo(({ evaluations, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState('desc')
@@ -62,6 +62,8 @@ const EvaluationsTable = memo(({ evaluations }) => {
       </div>
     )
   }
+
+
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 transition-colors duration-200">
@@ -130,6 +132,7 @@ const EvaluationsTable = memo(({ evaluations }) => {
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 ملف
               </th>
+
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -196,6 +199,7 @@ const EvaluationsTable = memo(({ evaluations }) => {
                       '-'
                     )}
                   </td>
+
                 </tr>
               ))
             )}
